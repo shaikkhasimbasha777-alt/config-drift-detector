@@ -14,25 +14,17 @@ while read -r server_name host; do
     echo "Collecting from: $server_name"
     echo "Host: $host"
     echo "====================================="
-   
-    # 1. Effective SSH configuration
-ssh "$host" "ssh -G localhost | grep -E '^(passwordauthentication|permitrootlogin|pubkeyauthentication|maxauthtries|kbdinteractiveauthentication) '" \
-    > "$OUTPUT/${server_name}_ssh_config"
 
-if [ $? -eq 0 ]; then
-    echo "SSH config: SUCCESS"
-else
-    echo "SSH config: FAILED"
-fi
-    # 2. Network configuration
-ssh "$host" "sysctl net.ipv4.ip_forward net.ipv4.conf.all.accept_redirects net.ipv4.conf.all.send_redirects" \
-    > "$OUTPUT/${server_name}_sysctl.conf" 2>&1
+        net.ipv4.conf.all.accept_redirects \
+        net.ipv4.conf.all.send_redirects" \
+        > "$OUTPUT/${server_name}_sysctl.conf"
 
-if [ $? -eq 0 ]; then
-    echo "Sysctl config: SUCCESS"
-else
-    echo "Sysctl config: FAILED"
-fi
+    if [ $? -eq 0 ]; then
+        echo "Sysctl config: SUCCESS"
+    else
+        echo "Sysctl config: FAILED"
+    fi
+
     # 3. Firewall configuration
     ssh "$host" '
         if command -v nft >/dev/null 2>&1; then

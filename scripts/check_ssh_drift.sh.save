@@ -1,22 +1,13 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-GOLDEN="$PROJECT_DIR/golden"
-COLLECTED="$PROJECT_DIR/ssh-collected"
-REPORT="$PROJECT_DIR/reports/ssh_drift_report.txt"
-TEMP="$PROJECT_DIR/reports/normalized"
+GOLDEN="../golden"
+COLLECTED="../ssh-collected"
+REPORT="../reports/ssh_drift_report.txt"
+TEMP="../reports/normalized"
 
 mkdir -p "$TEMP"
-mkdir -p "$(dirname "$REPORT")"
 
-DRIFT_COUNT=0
-COMPLIANT_COUNT=0
-MISSING_COUNT=0
-UNAVAILABLE_COUNT=0
-
-echo "=====================================" | tee "$REPORT"
+DRIFT_COUNT=echo "=====================================" | tee "$REPORT"
 echo "       CONFIG DRIFT REPORT" | tee -a "$REPORT"
 echo "=====================================" | tee -a "$REPORT"
 echo "Date: $(date)" | tee -a "$REPORT"
@@ -51,27 +42,15 @@ for server in "$COLLECTED"/*_ssh_config; do
 
         if [ ! -f "$collected_file" ]; then
             echo "Status: MISSING" | tee -a "$REPORT"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-            continue
-        fi
-
-        # Firewall unavailable on this server
-        if grep -q "^FIREWALL_UNAVAILABLE$" "$collected_file"; then
-            echo "Status: UNAVAILABLE" | tee -a "$REPORT"
-            UNAVAILABLE_COUNT=$((UNAVAILABLE_COUNT + 1))
+            DRIFT_COUNT=$((DRIFT_COUNT + 1))
             continue
         fi
 
         normalized_golden="$TEMP/${config}_golden"
         normalized_server="$TEMP/${server_name}_${config}"
 
-        "$SCRIPT_DIR/normalize_config.sh" \
-            "$golden_file" \
-            "$normalized_golden" > /dev/null
-
-        "$SCRIPT_DIR/normalize_config.sh" \
-            "$collected_file" \
-            "$normalized_server" > /dev/null
+        ./normalize_config.sh "$golden_file" "$normalized_golden" > /dev/null
+        ./normalize_config.sh "$collected_file" "$normalized_server" > /dev/null
 
         golden_hash=$(sha256sum "$normalized_golden" | awk '{print $1}')
         server_hash=$(sha256sum "$normalized_server" | awk '{print $1}')
@@ -80,7 +59,6 @@ for server in "$COLLECTED"/*_ssh_config; do
 
             echo "Status: COMPLIANT" | tee -a "$REPORT"
             echo "SHA256: $golden_hash" | tee -a "$REPORT"
-            COMPLIANT_COUNT=$((COMPLIANT_COUNT + 1))
 
         else
 
@@ -100,25 +78,13 @@ for server in "$COLLECTED"/*_ssh_config; do
 done
 
 echo | tee -a "$REPORT"
-echo "========== SUMMARY ==========" | tee -a "$REPORT"
-echo "Compliant:   $COMPLIANT_COUNT" | tee -a "$REPORT"
-echo "Drifted:     $DRIFT_COUNT" | tee -a "$REPORT"
-echo "Missing:     $MISSING_COUNT" | tee -a "$REPORT"
-echo "Unavailable: $UNAVAILABLE_COUNT" | tee -a "$REPORT"
-
-if [ "$DRIFT_COUNT" -gt 0 ] || [ "$MISSING_COUNT" -gt 0 ]; then
-    echo "Overall Status: FAILED" | tee -a "$REPORT"
-else
-    echo "Overall Status: PASSED" | tee -a "$REPORT"
-fi
-
-echo | tee -a "$REPORT"
 echo "=====================================" | tee -a "$REPORT"
 echo "          CHECK COMPLETE" | tee -a "$REPORT"
 echo "=====================================" | tee -a "$REPORT"
+echo "Total drift/missing items: $DRIFT_COUNT" | tee -a "$REPORT"
 echo "Report saved to: $REPORT"
 
-if [ "$DRIFT_COUNT" -gt 0 ] || [ "$MISSING_COUNT" -gt 0 ]; then
+if [ "$DRIFT_COUNT" -gt 0 ]; then
     exit 1
 else
     exit 0
