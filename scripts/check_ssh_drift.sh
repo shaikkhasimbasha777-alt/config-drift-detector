@@ -1,0 +1,93 @@
+#!/bin/bash
+
+GOLDEN="../golden"
+COLLECTED="../ssh-collected"
+REPORT="../reports/ssh_drift_report.txt"
+TEMP="../reports/normalized"
+
+mkdir -p "$TEMP"
+
+DRIFT_COUNT=0
+
+echo "=====================================" | tee "$REPORT"
+echo "       CONFIG DRIFT REPORT" | tee -a "$REPORT"
+echo "=====================================" | tee -a "$REPORT"
+echo "Date: $(date)" | tee -a "$REPORT"
+echo | tee -a "$REPORT"
+
+for server in "$COLLECTED"/*_ssh_config; do
+
+    server_name=$(basename "$server" "_ssh_config")
+
+    echo "-------------------------------------" | tee -a "$REPORT"
+    echo "Server: $server_name" | tee -a "$REPORT"
+    echo "-------------------------------------" | tee -a "$REPORT"
+
+    for config in ssh_config sysctl.conf firewall.rules; do
+
+        golden_file="$GOLDEN/$config"
+
+        case "$config" in
+            ssh_config)
+                collected_file="$COLLECTED/${server_name}_ssh_config"
+                ;;
+            sysctl.conf)
+                collected_file="$COLLECTED/${server_name}_sysctl.conf"
+                ;;
+            firewall.rules)
+                collected_file="$COLLECTED/${server_name}_firewall.rules"
+                ;;
+        esac
+
+        echo | tee -a "$REPORT"
+        echo "Configuration: $config" | tee -a "$REPORT"
+
+        if [ ! -f "$collected_file" ]; then
+            echo "Status: MISSING" | tee -a "$REPORT"
+            DRIFT_COUNT=$((DRIFT_COUNT + 1))
+            continue
+        fi
+
+        normalized_golden="$TEMP/${config}_golden"
+        normalized_server="$TEMP/${server_name}_${config}"
+
+        ./normalize_config.sh "$golden_file" "$normalized_golden" > /dev/null
+        ./normalize_config.sh "$collected_file" "$normalized_server" > /dev/null
+
+        golden_hash=$(sha256sum "$normalized_golden" | awk '{print $1}')
+        server_hash=$(sha256sum "$normalized_server" | awk '{print $1}')
+
+        if [ "$golden_hash" = "$server_hash" ]; then
+
+            echo "Status: COMPLIANT" | tee -a "$REPORT"
+            echo "SHA256: $golden_hash" | tee -a "$REPORT"
+
+        else
+
+            echo "Status: DRIFT DETECTED" | tee -a "$REPORT"
+            DRIFT_COUNT=$((DRIFT_COUNT + 1))
+
+            echo "Golden SHA256: $golden_hash" | tee -a "$REPORT"
+            echo "Server SHA256: $server_hash" | tee -a "$REPORT"
+
+            echo "Differences:" | tee -a "$REPORT"
+            diff -u "$normalized_golden" "$normalized_server" | tee -a "$REPORT"
+
+        fi
+
+    done
+
+done
+
+echo | tee -a "$REPORT"
+echo "=====================================" | tee -a "$REPORT"
+echo "          CHECK COMPLETE" | tee -a "$REPORT"
+echo "=====================================" | tee -a "$REPORT"
+echo "Total drift/missing items: $DRIFT_COUNT" | tee -a "$REPORT"
+echo "Report saved to: $REPORT"
+
+if [ "$DRIFT_COUNT" -gt 0 ]; then
+    exit 1
+else
+    exit 0
+fi

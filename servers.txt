@@ -1,0 +1,4 @@
+server01 khasim@localhost
+server02 khasim@localhost
+server03 khasim@localhost
+

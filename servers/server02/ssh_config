@@ -1,0 +1,4 @@
+PermitRootLogin no
+PasswordAuthentication yes
+PubkeyAuthentication yes
+MaxAuthTries 3

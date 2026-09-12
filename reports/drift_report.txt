@@ -1,0 +1,49 @@
+=====================================
+       CONFIG DRIFT REPORT
+=====================================
+Date: Sat Sep 12 13:21:14 UTC 2026
+
+-------------------------------------
+Server: server01
+-------------------------------------
+
+Configuration: firewall.rules
+Status: COMPLIANT
+
+Configuration: ssh_config
+Status: COMPLIANT
+
+Configuration: sysctl.conf
+Status: COMPLIANT
+-------------------------------------
+Server: server02
+-------------------------------------
+
+Configuration: firewall.rules
+Status: COMPLIANT
+
+Configuration: ssh_config
+Status: DRIFT DETECTED
+Golden Hash: 1faf7ae958cf3769c09c25a3f200eb1aaa7d2d51eb2b5ba46a2c382e88c83dcb
+Server Hash: 0ab44fee1186dd8ed141ebc4113cc7457100375a6638e1018000e04f31130b99
+
+Configuration: sysctl.conf
+Status: COMPLIANT
+-------------------------------------
+Server: server03
+-------------------------------------
+
+Configuration: firewall.rules
+Status: DRIFT DETECTED
+Golden Hash: b2ffa8229e3249e823ce7454a6c442d1fee4652cadd1bd550fec88840548fe98
+Server Hash: 6515f99273ebf2b7d318be4eb7ba6bf5514d2c8f379876ca77324cc879a26c91
+
+Configuration: ssh_config
+Status: COMPLIANT
+
+Configuration: sysctl.conf
+Status: COMPLIANT
+
+=====================================
+          CHECK COMPLETE
+=====================================

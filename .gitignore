@@ -1,0 +1,4 @@
+ssh-collected/
+reports/normalized/
+*.log
+.env
